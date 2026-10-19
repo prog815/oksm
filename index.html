@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ОКСМ — Общероссийский классификатор стран мира</title>
+<meta name="description" content="Поиск по ОКСМ: числовой код страны, альфа-2, альфа-3, краткое и полное наименование. Плоский справочник стран мира без дерева. Источник — машиночитаемый снимок классификатора.">
+<meta name="theme-color" content="#e8f0f7">
+<link rel="icon" type="image/svg+xml" href="https://prog815.github.io/common-menu/favicon.svg?v=1.0.0">
+<style>
+  :root{
+    --bg:#eef1f7; --panel:#ffffff; --text:#16203a; --muted:#5b6478;
+    --line:#dbe1ec; --line-strong:#c6cfe0;
+    --accent:#2f6f8f; --accent-weak:#e5f1f6; --accent-text:#215a74;
+    --mark:#fff3a3; --danger:#b42318; --shadow:0 1px 2px rgba(20,30,60,.06),0 6px 18px rgba(20,30,60,.06);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --radius:12px;
+
+    /* ОКСМ-специфичные роли */
+    --code:#2f6f8f;   --code-bg:#e5f1f6;   --code-fg:#215a74;
+    --a2:#3457a6;     --a2-bg:#e6ecf8;     --a2-fg:#27407e;
+    --a3:#6b7fa3;     --a3-bg:#edf1f8;     --a3-fg:#435473;
+    --review:#b06a00; --review-bg:#fdf0da; --review-fg:#8a5200;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.45;
+    -webkit-text-size-adjust:100%;
+  }
+  a{color:var(--accent-text)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+  /* header */
+  .hero{padding:18px 0 6px}
+  .hero h1{margin:0 0 4px;font-size:30px;letter-spacing:.2px}
+  .hero p{margin:0;color:var(--muted);font-size:15px;max-width:940px}
+  .hero p b{color:var(--text);font-weight:600}
+  .notice{
+    margin:12px 0 2px;padding:10px 14px;border:1px solid var(--line-strong);
+    border-left:5px solid var(--accent);border-radius:10px;background:var(--panel);
+    color:var(--text);font-size:13.5px;box-shadow:var(--shadow);
+  }
+  .notice b{font-weight:600}
+  .notice a{white-space:nowrap}
+  .hints{margin:10px 0 0;color:var(--muted);font-size:13px}
+  .hints .mono{font-family:var(--mono);letter-spacing:.3px}
+
+  /* sticky search panel */
+  .panel{
+    position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);
+    backdrop-filter:saturate(1.1) blur(6px);
+    border-bottom:1px solid var(--line);padding:12px 0;margin-top:0;
+  }
+  .panel .wrap{display:flex;flex-direction:column;gap:10px}
+  .row1{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .searchbox{position:relative;flex:1 1 340px;min-width:220px}
+  #q{
+    width:100%;padding:11px 38px 11px 13px;border:1px solid var(--line-strong);
+    border-radius:10px;font-size:15px;background:var(--panel);color:var(--text);
+  }
+  #q:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-weak)}
+  #q::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
+  .clear{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;
+    cursor:pointer;padding:4px 6px;border-radius:8px;display:none;
+  }
+  .clear:hover{background:var(--accent-weak);color:var(--accent-text)}
+  .searchbox.has-val .clear{display:block}
+
+  /* status line */
+  .statusline{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;
+    color:var(--muted);font-size:13px;padding:2px 2px 0}
+  .statusline .found b{color:var(--text)}
+  .statusline .date{white-space:nowrap;text-align:right;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+  /* results */
+  main{padding:14px 0 30px}
+  #state{padding:30px 4px;color:var(--muted);text-align:center}
+  #state.error{color:var(--danger)}
+  #state .retry{margin-top:10px;display:inline-block;padding:9px 14px;border:1px solid var(--line-strong);
+    border-radius:10px;background:var(--panel);color:var(--accent-text);cursor:pointer;font:inherit}
+  #list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+  .empty{padding:26px 4px;color:var(--muted);text-align:center}
+
+  /* card */
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--kind,var(--code));
+    border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);
+  }
+  .card.highlight{outline:3px solid var(--accent);outline-offset:2px}
+  .card-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .code,.alpha2,.alpha3{
+    font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.4px;
+    border:1px solid transparent;border-radius:8px;padding:4px 9px;cursor:pointer;white-space:nowrap;
+  }
+  .code{background:var(--code-bg);color:var(--code-fg);font-size:15px}
+  .code:hover{border-color:var(--code)}
+  .alpha2{background:var(--a2-bg);color:var(--a2-fg)}
+  .alpha2:hover{border-color:var(--a2)}
+  .alpha3{background:var(--a3-bg);color:var(--a3-fg)}
+  .alpha3:hover{border-color:var(--a3)}
+  .copy-full{
+    margin-left:auto;border:1px dashed var(--line-strong);background:#fbfcfe;color:var(--muted);
+    border-radius:8px;padding:4px 9px;cursor:pointer;font:inherit;font-size:13px;white-space:nowrap;
+  }
+  .copy-full:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-weak)}
+  .badge{
+    font:inherit;font-size:12px;border-radius:999px;padding:4px 10px;cursor:default;
+    border:1px solid transparent;white-space:nowrap;
+  }
+  .badge-review{background:var(--review-bg);color:var(--review-fg);border-color:var(--review)}
+  .name{margin-top:9px;font-size:15.5px;font-weight:650;word-break:break-word}
+  .meta-row{margin-top:7px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+  .meta-row .lbl{color:var(--muted);white-space:nowrap}
+  .meta-row .val{color:var(--text);word-break:break-word}
+  .hint-row{margin-top:7px;font-size:12.5px;border-radius:8px;padding:6px 9px}
+  .hint-review{background:var(--review-bg);color:var(--review-fg)}
+  mark{background:var(--mark);border-radius:3px;padding:0 1px;color:inherit}
+
+  .more{display:flex;justify-content:center;margin:16px 0 4px}
+  .more button{
+    padding:11px 18px;border:1px solid var(--line-strong);border-radius:10px;background:var(--panel);
+    color:var(--accent-text);font:inherit;font-size:14px;cursor:pointer;box-shadow:var(--shadow);
+  }
+  .more button:hover{border-color:var(--accent);background:var(--accent-weak)}
+  .more button:disabled{opacity:.5;cursor:default}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);background:var(--panel)}
+  footer .wrap{padding:18px 16px 30px;color:var(--muted);font-size:14px}
+  footer h4{margin:0 0 8px;color:var(--text);font-size:15px}
+  footer .lead{margin:0 0 12px;color:var(--text)}
+  footer .lead b{font-weight:600}
+  footer .links{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin:0 0 10px}
+  footer .links .cap{color:var(--muted)}
+  footer .links a{white-space:nowrap}
+  footer .note{margin:6px 0 0;font-size:13px;color:#596172}
+  footer .disc{margin:10px 0 0;font-size:13px;color:#6b7385}
+
+  /* floating buttons + toast */
+  .fab{position:fixed;right:16px;display:flex;flex-direction:column;gap:8px;z-index:40}
+  .fab.up{bottom:74px}.fab.down{bottom:16px}
+  .fab button{
+    width:42px;height:42px;border-radius:50%;border:1px solid var(--line-strong);background:var(--panel);
+    color:var(--accent-text);font-size:18px;cursor:pointer;box-shadow:var(--shadow);display:none;
+  }
+  .fab button:hover{background:var(--accent-weak);border-color:var(--accent)}
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+    background:#16203a;color:#eaf0ff;padding:10px 16px;border-radius:10px;font-size:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60;
+    max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:720px){
+    .hero h1{font-size:25px}
+    .row1{flex-direction:column;align-items:stretch}
+    .row1>*{width:100%}
+    .searchbox{flex:auto}
+    .statusline{flex-direction:column;gap:2px}
+    .statusline .date{text-align:left}
+    .copy-full{margin-left:0}
+  }
+</style>
+</head>
+<body>
+<!--
+  Версия каталога после добавления ОКСМ — ?v=2.7.0.
+  Порядок публикации:
+    1) сначала обновить prog815/common-menu/menu.js (добавить пункт ОКСМ в projectsCatalog
+       после ОКВ: { label:'ОКСМ', title:'Справочник ОКСМ', url:'https://prog815.github.io/oksm/',
+       match:'/oksm/', goal:'nav_oksm' }) и закоммитить;
+    2) убедиться, что https://prog815.github.io/common-menu/menu.js?v=2.7.0 отдаёт 200;
+    3) затем публиковать этот index.html с ?v=2.7.0 и batch-поднять ?v= во всех справочниках.
+  Пока 2.7.0 не залит в каталог — страница всё равно работает, меню просто не покажет пункт ОКСМ.
+  match:'/oksm/' не является подстрокой других match — подсветка активного пункта корректна.
+-->
+<script src="https://prog815.github.io/common-menu/menu.js?v=2.7.0"></script>
+<common-projects-menu></common-projects-menu>
+
+<div class="wrap hero">
+  <h1>ОКСМ</h1>
+  <p>Общероссийский классификатор стран мира.
+     Поиск по <b>числовому коду</b>, <b>альфа-2</b>, <b>альфа-3</b>,
+     <b>краткому</b> и <b>полному наименованию</b>.
+     Справочник плоский — список записей без дерева.</p>
+
+  <div class="notice">
+    <b>ОКСМ — это код страны мира.</b>
+    Для адресов внутри России используйте
+    <a href="https://prog815.github.io/okato/" rel="noopener" target="_blank">ОКАТО</a> и
+    <a href="https://prog815.github.io/oktmo/" rel="noopener" target="_blank">ОКТМО</a>.
+    Буквенные коды альфа-2 / альфа-3 приведены по данным ОКСМ и могут не совпадать с ISO 3166-1.
+  </div>
+
+  <div class="hints">
+    Форматы запроса: <span class="mono">три цифры</span> ·
+    <span class="mono">два буквенных символа</span> ·
+    <span class="mono">три буквенных символа</span> ·
+    слово из краткого или полного названия.
+  </div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="wrap">
+    <div class="row1">
+      <div class="searchbox" id="searchbox">
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Код, альфа-2, альфа-3 или название"
+               aria-label="Поиск по ОКСМ">
+        <button class="clear" id="clear" type="button" title="Очистить запрос" aria-label="Очистить запрос">×</button>
+      </div>
+    </div>
+    <div class="statusline">
+      <div class="found" id="found">Загрузка…</div>
+      <div class="date" id="dateLine"></div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div id="listView">
+    <div id="state">Загрузка данных справочника…</div>
+    <ul id="list" hidden></ul>
+    <div class="more" id="moreWrap" hidden>
+      <button id="more" type="button">Показать ещё</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <h4>О справочнике</h4>
+    <p class="lead" id="footLead"></p>
+    <div class="links">
+      <span class="cap">Источник данных (машиночитаемый снимок):</span>
+      <a href="https://classifikators.ru/oksm" rel="noopener" target="_blank">classifikators.ru — ОКСМ</a>
+    </div>
+    <div class="links">
+      <span class="cap">Текстовые редакции для сверки:</span>
+      <a href="https://www.consultant.ru/document/cons_doc_LAW_34516/" rel="noopener" target="_blank">КонсультантПлюс</a>
+      <a href="https://internet.garant.ru/#/document/12127475" rel="noopener" target="_blank">Гарант</a>
+      <a href="https://docs.cntd.ru/document/842501280" rel="noopener" target="_blank">Кодекс</a>
+      <a href="https://github.com/prog815/oksm" rel="noopener" target="_blank">О справочнике</a>
+    </div>
+    <p class="note" id="footCodeNote"></p>
+    <p class="disc" id="footDisc"></p>
+  </div>
+</footer>
+
+<div class="fab up"><button id="toTop" type="button" title="Наверх" aria-label="Наверх">↑</button></div>
+<div class="fab down"><button id="toBottom" type="button" title="Вниз" aria-label="Вниз">↓</button></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- конфигурация ----------
+  var BASE = location.href.replace(/[^/]*$/,"");
+  var DATA_GZ  = BASE + "oksm.json.gz";
+  var DATA_JSON= BASE + "oksm.json";
+  var META_GZ  = BASE + "oksm_meta.json.gz";
+  var META_JSON= BASE + "oksm_meta.json";
+
+  var PAGE_SIZE = 20;
+  var DEBOUNCE_MS = 180;
+  var SCROLL_THRESHOLD = 300;
+  var EMPTY_PQ = {digits:"", tokens:[], rawTerms:[], latin:[], full:""};
+
+  // Формат веб-записи ОКСМ (контракт тетрадки):
+  // [code, iso_alpha2, iso_alpha3, name_short, name_full, source_order, needs_review]
+  var F_CODE=0, F_ALPHA2=1, F_ALPHA3=2, F_SHORT=3, F_FULL=4, F_ORDER=5, F_REVIEW=6;
+
+  // ---------- состояние ----------
+  var RECORDS = [];
+  var BY_CODE = {};
+  var countFull=0, countNoFull=0, countAlpha2=0, countAlpha3=0, countReview=0;
+  var filtered = [];
+  var shown = PAGE_SIZE;
+  var META = null;
+  var pendingFocusCode = "";
+
+  // ---------- dom ----------
+  var $ = function(id){return document.getElementById(id);};
+  var elState=$("state"), elList=$("list"), elMoreWrap=$("moreWrap"), elMore=$("more");
+  var elQ=$("q"), elClear=$("clear"), elBox=$("searchbox"),
+      elFound=$("found"), elDate=$("dateLine"),
+      elFootLead=$("footLead"),
+      elFootCodeNote=$("footCodeNote"),
+      elFootDisc=$("footDisc"), elToast=$("toast"),
+      elTop=$("toTop"), elBottom=$("toBottom");
+
+  // ---------- утилиты ----------
+  function norm(s){
+    s = String(s==null?"":s).toLowerCase().replace(/ё/g,"е");
+    s = s.replace(/[^a-zа-я0-9]+/g," ");
+    s = s.replace(/\s+/g," ").trim();
+    return s;
+  }
+  function escHtml(s){
+    return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+  function fmtNum(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,"\u00a0"); }
+  function plural(n,forms){
+    var n10=n%10, n100=n%100;
+    if(n10===1 && n100!==11) return forms[0];
+    if(n10>=2 && n10<=4 && (n100<10||n100>=20)) return forms[1];
+    return forms[2];
+  }
+  function isReview(r){ return r.review==="1"; }
+
+  function fmtRuDate(iso){
+    var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||""));
+    if(!m) return iso||"";
+    return m[3]+"."+m[2]+"."+m[1];
+  }
+
+  // Автоматические аббревиатуры из названия. Это не ручной словарь стран,
+  // а производный поисковый слой из полей источника.
+  function makeAcronyms(text){
+    var words = String(text||"").match(/[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’-]*/g) || [];
+    var letters = [];
+    var stop = /^(и|в|на|под|над|при|для|из|от|до|по|о|а|но|же|бы|как)$/i;
+
+    for(var i=0;i<words.length;i++){
+      var w = words[i];
+      var lw = String(w).toLowerCase().replace(/ё/g,"е");
+      if(!w || w.length < 2 || stop.test(lw)) continue;
+      letters.push(String(w).charAt(0).toUpperCase());
+    }
+
+    if(letters.length >= 2 && letters.length <= 4){
+      return letters.join("");
+    }
+    return "";
+  }
+
+  function extractWords(text){
+    var n = norm(text);
+    return n ? n.split(" ").filter(Boolean) : [];
+  }
+
+  function commonPrefixOk(a,b){
+    var max = Math.min(5, a.length, b.length);
+    if(max < 4) return false;
+    return a.slice(0,max) === b.slice(0,max);
+  }
+
+  // ---------- загрузка ----------
+  async function fetchJson(gzUrl, jsonUrl){
+    try{
+      if (typeof DecompressionStream === "function"){
+        var r = await fetch(gzUrl,{cache:"no-store"});
+        if (r.ok){
+          var ds = new DecompressionStream("gzip");
+          var decompressed = r.body.pipeThrough(ds);
+          var text = await new Response(decompressed).text();
+          return JSON.parse(text);
+        }
+      }
+    }catch(e){ /* fallback */ }
+    var r2 = await fetch(jsonUrl,{cache:"no-store"});
+    if(!r2.ok) throw new Error("не удалось получить файл, код ответа "+r2.status);
+    return await r2.json();
+  }
+
+  async function loadAll(){
+    elState.hidden=false; elState.className=""; elState.textContent="Загрузка данных справочника…";
+    elList.hidden=true; elList.innerHTML=""; elMoreWrap.hidden=true; elMore.textContent="";
+    elFound.textContent="Загрузка…"; elDate.textContent="";
+
+    var data, meta=null;
+    try{
+      data = await fetchJson(DATA_GZ, DATA_JSON);
+    }catch(err){
+      elState.className="error";
+      elState.innerHTML = "Не удалось загрузить данные справочника.<br>"+
+        "<small>"+escHtml(err&&err.message||err)+"</small><br>"+
+        '<button class="retry" id="retryBtn" type="button">Повторить</button>';
+      var rb=$("retryBtn"); if(rb) rb.addEventListener("click", loadAll);
+      return;
+    }
+    try{ meta = await fetchJson(META_GZ, META_JSON); }catch(e){ meta=null; }
+
+    META = meta;
+    buildIndexes(data);
+    renderFooter();
+    renderDateLine();
+    parseUrlAndApply();
+  }
+
+  // ---------- построение индексов ----------
+  function buildIndexes(arr){
+    RECORDS = []; BY_CODE = {};
+    countFull=0; countNoFull=0; countAlpha2=0; countAlpha3=0; countReview=0;
+    if(!Array.isArray(arr)) arr=[];
+
+    for(var i=0;i<arr.length;i++){
+      var it = arr[i]||[];
+      var code = String(it[F_CODE]==null?"":it[F_CODE]).trim();
+      if(!code) continue;
+
+      var alpha2 = String(it[F_ALPHA2]==null?"":it[F_ALPHA2]).trim().toUpperCase();
+      var alpha3 = String(it[F_ALPHA3]==null?"":it[F_ALPHA3]).trim().toUpperCase();
+      var shortName = String(it[F_SHORT]==null?"":it[F_SHORT]).trim();
+      var fullName = String(it[F_FULL]==null?"":it[F_FULL]).trim();
+      var orderRaw = String(it[F_ORDER]==null?"":it[F_ORDER]).trim();
+      var review = String(it[F_REVIEW]==null?"":it[F_REVIEW]).trim();
+
+      var orderNum = parseInt(orderRaw,10);
+      if(!isFinite(orderNum)) orderNum = i+1;
+
+      var acrShort = makeAcronyms(shortName);
+      var acrFull = makeAcronyms(fullName);
+      var acronyms = [acrShort, acrFull].filter(Boolean).join(" ");
+
+      var nShort = norm(shortName);
+      var nFull = norm(fullName);
+      var nAcronyms = norm(acronyms);
+
+      var words = []
+        .concat(extractWords(shortName))
+        .concat(extractWords(fullName))
+        .concat(extractWords(acronyms));
+
+      if(alpha2) words.push(alpha2.toLowerCase());
+      if(alpha3) words.push(alpha3.toLowerCase());
+      words.push(code);
+
+      var searchBlob = norm(
+        code+" "+alpha2+" "+alpha3+" "+shortName+" "+fullName+" "+acronyms
+      );
+
+      var rec = {
+        code:code,
+        alpha2:alpha2,
+        alpha3:alpha3,
+        short:shortName,
+        full:fullName,
+        order:orderRaw || String(orderNum),
+        orderNum:orderNum,
+        review:review,
+        nShort:nShort,
+        nFull:nFull,
+        nAcronyms:nAcronyms,
+        words:words,
+        searchBlob:searchBlob
+      };
+
+      RECORDS.push(rec);
+      BY_CODE[code] = rec;
+
+      if(fullName) countFull++; else countNoFull++;
+      if(alpha2) countAlpha2++;
+      if(alpha3) countAlpha3++;
+      if(review==="1") countReview++;
+    }
+
+    // Порядок по умолчанию — как в источнике, затем по коду.
+    RECORDS.sort(function(a,b){
+      if(a.orderNum !== b.orderNum) return a.orderNum - b.orderNum;
+      return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+    });
+  }
+
+  // ---------- поиск ----------
+  function prepareQuery(q){
+    var raw = String(q||"");
+    var digits = raw.replace(/[^0-9]/g,"");
+    var n = norm(raw);
+    var tokens = n ? n.split(" ").filter(Boolean) : [];
+    var rawTerms = raw.trim().split(/\s+/).filter(Boolean);
+    var latin = [];
+
+    tokens.forEach(function(t){
+      if(/^[a-z]{2}$/.test(t)) latin.push({type:"a2", val:t.toUpperCase()});
+      else if(/^[a-z]{3}$/.test(t)) latin.push({type:"a3", val:t.toUpperCase()});
+    });
+
+    return {digits:digits, tokens:tokens, rawTerms:rawTerms, latin:latin, full:tokens.join(" ")};
+  }
+
+  function tokenMatches(token, rec){
+    if(!token) return true;
+    if(rec.searchBlob.indexOf(token) >= 0) return true;
+
+    var words = rec.words || [];
+    for(var i=0;i<words.length;i++){
+      if(commonPrefixOk(token, words[i])) return true;
+    }
+    return false;
+  }
+
+  function scoreRecord(r, pq){
+    var score=0;
+    var hasQuery = !!(pq.digits || pq.latin.length || pq.tokens.length);
+
+    // числовой код
+    if(pq.digits){
+      if(r.code === pq.digits) score += 100;
+      else if(pq.digits.length >= 2 && r.code.indexOf(pq.digits) === 0) score += 75;
+    }
+
+    // альфа-коды
+    if(pq.latin.length){
+      for(var li=0; li<pq.latin.length; li++){
+        var l = pq.latin[li];
+        if(l.type === "a2"){
+          if(r.alpha2 === l.val) score += 95;
+          else if(l.val.length >= 2 && r.alpha2 && r.alpha2.indexOf(l.val) === 0) score += 65;
+        }else if(l.type === "a3"){
+          if(r.alpha3 === l.val) score += 90;
+          else if(l.val.length >= 3 && r.alpha3 && r.alpha3.indexOf(l.val) === 0) score += 60;
+        }
+      }
+    }
+
+    // AND по токенам
+    if(pq.tokens.length){
+      for(var ti=0; ti<pq.tokens.length; ti++){
+        if(!tokenMatches(pq.tokens[ti], r)) return null;
+      }
+    }
+
+    // точные / частичные совпадения по тексту
+    if(pq.full){
+      if(r.nShort === pq.full) score += 60;
+      else if(r.nShort.indexOf(pq.full) === 0) score += 50;
+      else if(r.nShort.indexOf(pq.full) >= 0) score += 35;
+
+      if(r.nFull === pq.full) score += 55;
+      else if(r.nFull.indexOf(pq.full) === 0) score += 45;
+      else if(r.nFull.indexOf(pq.full) >= 0) score += 30;
+
+      if(r.nAcronyms.indexOf(pq.full) >= 0) score += 45;
+    }
+
+    for(var k=0;k<pq.tokens.length;k++){
+      var t = pq.tokens[k];
+      if(r.nShort.indexOf(t) >= 0) score += 5;
+      if(r.nFull.indexOf(t) >= 0) score += 4;
+      if(r.nAcronyms.indexOf(t) >= 0) score += 8;
+      if(r.alpha2 && r.alpha2.toLowerCase().indexOf(t) >= 0) score += 3;
+      if(r.alpha3 && r.alpha3.toLowerCase().indexOf(t) >= 0) score += 3;
+      if(r.code.indexOf(t) >= 0) score += 2;
+    }
+
+    if(hasQuery && score <= 0) return null;
+    return score;
+  }
+
+  function applyFilters(){
+    var pq = prepareQuery(elQ.value);
+    var hasQuery = !!(pq.digits || pq.latin.length || pq.tokens.length);
+
+    var base = RECORDS.slice();
+
+    if(hasQuery){
+      var scored=[];
+      for(var a=0;a<base.length;a++){
+        var s = scoreRecord(base[a], pq);
+        if(s!==null) scored.push({r:base[a], s:s});
+      }
+      scored.sort(function(x,y){
+        if(y.s !== x.s) return y.s - x.s;
+        if(x.r.orderNum !== y.r.orderNum) return x.r.orderNum - y.r.orderNum;
+        return x.r.code < y.r.code ? -1 : x.r.code > y.r.code ? 1 : 0;
+      });
+      filtered = scored.map(function(o){return o.r;});
+    }else{
+      filtered = base;
+    }
+
+    filtered._pq = pq;
+    filtered._hasQuery = hasQuery;
+
+    shown = PAGE_SIZE;
+    renderList();
+  }
+
+  // ---------- рендер списка ----------
+  function renderList(){
+    var pq = filtered._pq || EMPTY_PQ;
+    var terms = pq.rawTerms || [];
+    var digits = pq.digits || "";
+    var total = filtered.length;
+
+    if(total===0){
+      elList.hidden=true; elList.innerHTML="";
+      elState.hidden=false; elState.className="";
+      elState.innerHTML = '<div class="empty">Ничего не найдено. Попробуйте сократить запрос.</div>';
+      elFound.innerHTML = "Найдено: <b>0</b>";
+      elMore.textContent=""; elMoreWrap.hidden=true;
+      return;
+    }
+
+    var visible = Math.min(shown, total);
+    elFound.innerHTML = "Найдено: <b>"+fmtNum(total)+"</b> · Показано: <b>"+fmtNum(visible)+"</b>";
+
+    elState.hidden=true; elList.hidden=false;
+    var frag = document.createDocumentFragment();
+    var slice = filtered.slice(0, shown);
+    for(var j=0;j<slice.length;j++) frag.appendChild(buildCard(slice[j], terms, digits));
+    elList.innerHTML=""; elList.appendChild(frag);
+
+    if(visible < total){
+      var next = Math.min(shown+PAGE_SIZE, total);
+      elMore.textContent = "Показать ещё +"+fmtNum(next-visible)+" (показано "+fmtNum(visible)+" из "+fmtNum(total)+")";
+      elMore.disabled=false;
+      elMoreWrap.hidden=false;
+    }else{
+      elMore.textContent="";
+      elMoreWrap.hidden=true;
+    }
+  }
+
+  // ---------- подсветка ----------
+  function hlText(text, rawTerms){
+    var safe = escHtml(text);
+    if(!rawTerms || !rawTerms.length) return safe;
+    var re = new RegExp("("+rawTerms.map(escRe).join("|")+")","gi");
+    return safe.replace(re,"<mark>$1</mark>");
+  }
+  function hlCode(code, digits){
+    var safe = escHtml(code);
+    if(digits && code.indexOf(digits)===0){
+      return "<mark>"+escHtml(digits)+"</mark>"+escHtml(code.slice(digits.length));
+    }
+    if(digits && code.indexOf(digits)>=0){
+      return safe.replace(new RegExp("("+escRe(digits)+")"),"<mark>$1</mark>");
+    }
+    return safe;
+  }
+  function hlAlpha(alpha, rawTerms){
+    return hlText(alpha, rawTerms);
+  }
+
+  // ---------- карточка ----------
+  function buildCard(r, terms, digits){
+    var li = document.createElement("li");
+    var card = document.createElement("article");
+    card.className="card";
+    card.dataset.code = r.code;
+
+    var review = isReview(r);
+    card.style.setProperty("--kind", review ? "var(--review)" : "var(--code)");
+
+    var top = document.createElement("div"); top.className="card-top";
+
+    // числовой код
+    var codeBtn = document.createElement("button");
+    codeBtn.type="button"; codeBtn.className="code";
+    codeBtn.innerHTML = hlCode(r.code, digits);
+    codeBtn.title = "Копировать числовой код: "+r.code;
+    codeBtn.dataset.act="copy-code"; codeBtn.dataset.val=r.code;
+    top.appendChild(codeBtn);
+
+    // альфа-2
+    if(r.alpha2){
+      var a2 = document.createElement("button");
+      a2.type="button"; a2.className="alpha2";
+      a2.innerHTML = hlAlpha(r.alpha2, terms);
+      a2.title = "Копировать альфа-2: "+r.alpha2;
+      a2.dataset.act="copy-alpha2"; a2.dataset.val=r.alpha2;
+      top.appendChild(a2);
+    }
+
+    // альфа-3
+    if(r.alpha3){
+      var a3 = document.createElement("button");
+      a3.type="button"; a3.className="alpha3";
+      a3.innerHTML = hlAlpha(r.alpha3, terms);
+      a3.title = "Копировать альфа-3: "+r.alpha3;
+      a3.dataset.act="copy-alpha3"; a3.dataset.val=r.alpha3;
+      top.appendChild(a3);
+    }
+
+    // требует сверки
+    if(review){
+      var rb = document.createElement("span");
+      rb.className="badge badge-review";
+      rb.textContent="Сверить";
+      rb.title="Запись помечена тетрадкой как требующая ручной сверки";
+      top.appendChild(rb);
+    }
+
+    // копировать строку
+    var copyFull = document.createElement("button");
+    copyFull.type="button"; copyFull.className="copy-full";
+    var fullVal = [r.code, r.alpha2, r.alpha3, r.short, r.full].filter(Boolean).join("; ");
+    copyFull.textContent = "📋 строка";
+    copyFull.title = "Скопировать: "+fullVal;
+    copyFull.dataset.act="copy-full"; copyFull.dataset.val=fullVal;
+    top.appendChild(copyFull);
+
+    card.appendChild(top);
+
+    // краткое название
+    var name = document.createElement("div"); name.className="name";
+    name.innerHTML = hlText(r.short, terms);
+    card.appendChild(name);
+
+    // полное название
+    if(r.full && r.full !== r.short){
+      var fr = document.createElement("div"); fr.className="meta-row";
+      var fl = document.createElement("span"); fl.className="lbl";
+      fl.textContent = "Полное название:";
+      var fv = document.createElement("span"); fv.className="val";
+      fv.innerHTML = hlText(r.full, terms);
+      fr.appendChild(fl); fr.appendChild(fv);
+      card.appendChild(fr);
+    }
+
+    if(review){
+      var hr = document.createElement("div"); hr.className="hint-row hint-review";
+      hr.textContent = "Значение было помечено при сборке как требующее ручной сверки. Перед официальным применением сверьте с первоисточником.";
+      card.appendChild(hr);
+    }
+
+    li.appendChild(card);
+    return li;
+  }
+
+  // ---------- редакция / футер ----------
+  function renderDateLine(){
+    var parts=[];
+    if(META && META.change) parts.push(META.change);
+    if(META && META.effective_date) parts.push("введено "+fmtRuDate(META.effective_date));
+    if(META && META.source_date_display) parts.push("снимок "+META.source_date_display);
+    elDate.textContent = parts.join(" · ");
+
+    var titleParts=[];
+    if(META && META.standard_line) titleParts.push(META.standard_line);
+    if(META && META.provenance) titleParts.push(META.provenance);
+    elDate.title = titleParts.join(" | ");
+  }
+
+  function renderFooter(){
+    var total = RECORDS.length;
+    var s = "В справочнике "+fmtNum(total)+" "+plural(total,["запись","записи","записей"])+
+            ": "+fmtNum(countFull)+" "+plural(countFull,["с полным названием","с полным названием","с полным названием"])+
+            " и "+fmtNum(countNoFull)+" "+plural(countNoFull,["без полного названия","без полного названия","без полного названия"])+
+            "; "+fmtNum(countAlpha2)+" "+plural(countAlpha2,["с альфа-2","с альфа-2","с альфа-2"])+
+            ", "+fmtNum(countAlpha3)+" "+plural(countAlpha3,["с альфа-3","с альфа-3","с альфа-3"]);
+    if(countReview){
+      s += "; "+fmtNum(countReview)+" "+plural(countReview,["помечена","помечены","помечено"])+" на сверку";
+    }
+    s += ".";
+    elFootLead.innerHTML = escHtml(s).replace(/(\d[\d\u00a0.]*)/g,"<b>$1</b>");
+
+    elFootCodeNote.textContent = (META && META.code_system_note)
+      ? META.code_system_note
+      : "Буквенные коды альфа-2 / альфа-3 приведены по данным источника и соответствуют системе ОКСМ / МК (ИСО 3166) 004-97; по отдельным объектам они могут не совпадать с ISO 3166-1.";
+
+    var disc = (META && META.disclaimer)
+      ? META.disclaimer
+      : "Материалы носят справочный характер и не являются точными копиями официальных документов. Перед применением в официальных документах сверяйте по первоисточнику.";
+    disc += " ОКСМ не является адресным реестром: для российских территорий используйте ОКАТО и ОКТМО.";
+    elFootDisc.textContent = disc;
+  }
+
+  // ---------- навигация ----------
+  function openCode(code){
+    var rec = BY_CODE[code];
+    if(!rec) return;
+    elQ.value=code; syncClear();
+    applyFilters(); syncUrl(); focusCode(code);
+  }
+  function focusCode(code){
+    setTimeout(function(){
+      var el = document.querySelector('article.card[data-code="'+code+'"]');
+      if(!el) return;
+      document.querySelectorAll(".card.highlight").forEach(function(node){ node.classList.remove("highlight"); });
+      el.classList.add("highlight");
+      el.scrollIntoView({behavior:"smooth", block:"center"});
+      setTimeout(function(){ el.classList.remove("highlight"); }, 1800);
+    }, 30);
+  }
+
+  // ---------- URL ----------
+  function parseUrlAndApply(){
+    var sp = new URLSearchParams(location.search);
+    var code = sp.get("code") || "";
+    var q = sp.get("q") || "";
+
+    pendingFocusCode = "";
+    if(code){
+      elQ.value = code;
+      pendingFocusCode = code;
+    }else{
+      elQ.value = q;
+    }
+    syncClear();
+
+    applyFilters();
+    if(pendingFocusCode) focusCode(pendingFocusCode);
+  }
+  function syncUrl(){
+    var sp = new URLSearchParams();
+    var q = elQ.value.trim(); if(q) sp.set("q", q);
+    var qs = sp.toString();
+    var url = location.pathname + (qs?("?"+qs):"");
+    try{ history.replaceState(null,"",url); }catch(e){}
+  }
+
+  // ---------- копирование + тост ----------
+  var toastTimer=null;
+  function toast(msg){
+    elToast.textContent = msg;
+    elToast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ elToast.classList.remove("show"); }, 1600);
+  }
+  function copyText(text, label){
+    var done=function(){ toast(label); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(text); done(); });
+    }else{ fallbackCopy(text); done(); }
+  }
+  function fallbackCopy(text){
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.setAttribute("readonly",""); ta.style.position="absolute"; ta.style.left="-9999px";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function onListClick(e){
+    var btn = e.target.closest("[data-act]");
+    if(!btn) return;
+    var act = btn.dataset.act, val = btn.dataset.val;
+    if(act==="copy-code") copyText(val, "Числовой код "+val+" скопирован");
+    else if(act==="copy-alpha2") copyText(val, "Альфа-2 "+val+" скопирован");
+    else if(act==="copy-alpha3") copyText(val, "Альфа-3 "+val+" скопирован");
+    else if(act==="copy-full") copyText(val, "Скопировано: "+val);
+  }
+
+  // ---------- события ----------
+  function syncClear(){ elBox.classList.toggle("has-val", !!elQ.value); }
+  function focusTop(){ window.scrollTo({top:0,behavior:"smooth"}); }
+
+  var deb=null;
+  function onInput(){
+    syncClear();
+    clearTimeout(deb);
+    deb=setTimeout(function(){ applyFilters(); syncUrl(); }, DEBOUNCE_MS);
+  }
+
+  elQ.addEventListener("input", onInput);
+  elQ.addEventListener("search", function(){ syncClear(); applyFilters(); syncUrl(); });
+  elClear.addEventListener("click", function(){ elQ.value=""; syncClear(); applyFilters(); syncUrl(); elQ.focus(); });
+  elMore.addEventListener("click", function(){ shown += PAGE_SIZE; renderList(); });
+  elList.addEventListener("click", onListClick);
+
+  window.addEventListener("popstate", function(){ parseUrlAndApply(); });
+
+  function onScroll(){
+    var y = window.scrollY || document.documentElement.scrollTop || 0;
+    var docH = document.documentElement.scrollHeight;
+    var winH = window.innerHeight;
+    elTop.style.display = (y>SCROLL_THRESHOLD) ? "block":"none";
+    elBottom.style.display = (y>SCROLL_THRESHOLD && (y+winH) < (docH-40)) ? "block":"none";
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll);
+  elTop.addEventListener("click", function(){ window.scrollTo({top:0,behavior:"smooth"}); });
+  elBottom.addEventListener("click", function(){ window.scrollTo({top:document.documentElement.scrollHeight,behavior:"smooth"}); });
+
+  syncClear();
+  loadAll();
+})();
+</script>
+</body>
+</html>
