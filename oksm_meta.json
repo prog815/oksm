@@ -3,6 +3,8 @@
   "classifier_full_name": "Общероссийский классификатор стран мира (ОКСМ)",
   "standard_line": "Классификатор ОК (МК (ИСО 3166) 004-97) 025-2001 с изменением № 33/2024. Введено 01.08.2024 с правом досрочного применения в правоотношениях, возникших с 29.02.2024. Приказ Росстандарта от 05.06.2024 №700-ст.",
   "change": "изменение № 33/2024",
+  "change_display": "Изменение № 33/2024 от 1 августа 2024",
+  "current_change": "33/2024",
   "effective_date": "2024-08-01",
   "effective_date_display": "1 августа 2024",
   "early_apply_date": "2024-02-29",
@@ -13,15 +15,21 @@
   "source_filename": "oksm.xlsx",
   "source_sha256": "91772b44a519c65b1de000d119cc0fb854324b1334dbebfe1380d36b1da5735f",
   "source_modified": "Thu, 01 Aug 2024 13:26:09 GMT",
+  "source_meta_created": null,
+  "source_meta_modified": null,
+  "source_meta_valid_until": null,
   "source_date": "2024-08-01",
   "source_date_display": "1 августа 2024",
   "source_date_origin": "editorial_effective_date",
   "valid_until": "",
   "provenance": "classifikators.ru · изменение № 33/2024",
-  "generated_at": "2026-10-26T23:01:52.671004+00:00",
+  "generated_at": "2026-10-28T15:15:57.475839+00:00",
   "version": "2024-08-01",
   "records_count": 253,
   "declared_count": 253,
+  "sections": null,
+  "sections_count": 0,
+  "sections_note": "плоский перечень стран и территорий; официальной иерархии разделов в источнике нет",
   "record_format": [
     "code",
     "iso_alpha2",
@@ -31,26 +39,47 @@
     "source_order",
     "needs_review"
   ],
-  "record_format_description": "code = 3-digit numeric string from source; iso_alpha2 = source alpha-2 if valid Latin uppercase; iso_alpha3 = source alpha-3 if valid Latin uppercase; name_short = source short Russian name; name_full = source full Russian name or empty; source_order = row order from source; needs_review = 1 if source ISO value was invalid and cleared; no manual aliases are included in v1",
+  "record_format_description": "code = 3-digit numeric string from source; iso_alpha2 = source alpha-2 if valid Latin uppercase; iso_alpha3 = source alpha-3 if valid Latin uppercase; name_short = source short Russian name; name_full = source full Russian name or empty; source_order = row order from source; needs_review = 1 if source ISO value was invalid and cleared; no manual aliases are included",
   "flat_model": true,
   "hierarchy": "none",
   "aliases_included": false,
+  "aliases_source": null,
   "manual_overlays": [],
+  "subject_overrides_applied": [],
+  "subject_morphology_normalized": 0,
   "code_system_note": "Буквенные коды (альфа-2 / альфа-3) приведены по данным источника и соответствуют системе ОКСМ / МК (ИСО 3166) 004-97; по отдельным объектам они могут не совпадать с ISO 3166-1. ISO 3166-1 указан только как общий международный ориентир, а не как гарант совпадения с ОКСМ.",
   "territorial_note": "Состав и наименования записей воспроизводят официальную редакцию классификатора по данным источника. Территориальные соответствия определяются редакцией ОК и не являются позицией проекта.",
   "disclaimer": "Материалы носят справочный характер и не являются точными копиями официальных документов. Перед применением в официальных документах сверяйте по первоисточнику (Росстандарт).",
   "primary_sources": [
     {
-      "name": "classifikators.ru (машиночитаемый снимок)",
-      "url": "https://classifikators.ru/oksm"
+      "name": "Росстандарт (первоисточник ОК)",
+      "url": "https://protect.gost.ru/",
+      "role": "primary"
     },
     {
-      "name": "Росстандарт (первоисточник ОК)",
-      "url": "https://protect.gost.ru/"
+      "name": "classifikators.ru (машиночитаемый снимок)",
+      "url": "https://classifikators.ru/oksm",
+      "role": "secondary"
+    },
+    {
+      "name": "КонсультантПлюс",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_34516/",
+      "role": "secondary"
+    },
+    {
+      "name": "Гарант",
+      "url": "https://internet.garant.ru/#/document/12127475",
+      "role": "secondary"
+    },
+    {
+      "name": "Кодекс",
+      "url": "https://docs.cntd.ru/document/842501280",
+      "role": "secondary"
     },
     {
       "name": "ISO 3166-1 (общий международный ориентир, не тождество ОКСМ)",
-      "url": "https://www.iso.org/iso-3166-country-codes.html"
+      "url": "https://www.iso.org/iso-3166-country-codes.html",
+      "role": "secondary"
     }
   ],
   "statistics": {
@@ -66,7 +95,15 @@
   ],
   "critical_errors": [],
   "publish_allowed": true,
+  "parse_counters": {
+    "total_rows": 253,
+    "name_had_nbsp": 0,
+    "name_had_replacement": 0,
+    "name_had_control": 0,
+    "name_had_whitespace_collapsed": 2
+  },
   "data_hash": "8ab7db902c6b0fa8",
+  "data_hash_full": "8ab7db902c6b0fa8bcb1c5b3f7f35a0d6266dca364afe4798c4610cfd09894cd",
   "file_size_json": 21851,
   "file_size_json_gz": 6897
 }
