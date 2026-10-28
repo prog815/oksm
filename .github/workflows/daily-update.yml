@@ -102,7 +102,7 @@ jobs:
             fi
           fi
 
-      - name: Check metadata (гейт публикации: META_OK)
+      - name: Check metadata — гейт публикации META_OK
         if: env.FILES_OK == 'true'
         id: meta_check
         run: |
