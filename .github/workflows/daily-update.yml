@@ -45,7 +45,8 @@ jobs:
           find ./output -maxdepth 4 -type f | head -30
           echo ""
           echo "--- Диагностика тетрадки (если есть) ---"
-          for f in ./output/oksm_data/diag/oksm_diagnostics.json ./output/*.log ./output/*.txt ./output/__notebook*.ipynb; do
+          # v-next.2: сначала validation_report.json (final/), затем расширенная диагностика (diag/)
+          for f in ./output/oksm_data/final/validation_report.json ./output/oksm_data/diag/oksm_diagnostics.json ./output/*.log ./output/*.txt ./output/__notebook*.ipynb; do
             [ -f "$f" ] && { echo ">>> $f (last 50 lines) >>>"; tail -n 50 "$f"; echo "<<< $f <<<"; echo ""; }
           done || true
 
@@ -101,8 +102,61 @@ jobs:
             fi
           fi
 
-      - name: Commit and push changes
+      - name: Check metadata (гейт публикации: META_OK)
         if: env.FILES_OK == 'true'
+        id: meta_check
+        run: |
+          # v-next.2 §11: коммит разрешён только при publish_allowed=true, critical_errors=[],
+          # data_hash_full (64) присутствует и согласован с data_hash (16), records_count > 0.
+          # На любой проблеме — exit 1: шаг краснеет, Commit and push (default if: success)
+          # пропускается, round-trip ниже (if: always) продолжает работать. META_OK=true
+          # пишется в GITHUB_ENV только при успехе — это дополнительный полис для будущих
+          # изменений workflow (явное намерение «коммит только после гейта»).
+          python - <<'PYEOF'
+          import json
+          import os
+          import sys
+
+          m = json.load(open('oksm_meta.json', encoding='utf-8'))
+
+          errors = []
+          if m.get('publish_allowed') is not True:
+              errors.append('publish_allowed != true: ' + repr(m.get('publish_allowed')))
+          if m.get('critical_errors') != []:
+              errors.append('critical_errors != []: ' + repr(m.get('critical_errors')))
+
+          dhf = m.get('data_hash_full')
+          if not isinstance(dhf, str) or len(dhf) != 64:
+              errors.append('data_hash_full length != 64: ' + repr(dhf))
+
+          dh = m.get('data_hash')
+          if not isinstance(dh, str) or len(dh) != 16:
+              errors.append('data_hash length != 16: ' + repr(dh))
+          elif isinstance(dhf, str) and len(dhf) == 64 and dh != dhf[:16]:
+              errors.append('data_hash != data_hash_full[:16]: ' + repr(dh) + ' vs ' + repr(dhf[:16]))
+
+          rc = m.get('records_count')
+          if not isinstance(rc, int) or rc <= 0:
+              errors.append('records_count invalid: ' + repr(rc))
+
+          if errors:
+              print('META_OK=false')
+              for e in errors:
+                  print('  - ' + e)
+              sys.exit(1)
+
+          print('META_OK=true')
+          print('  data_hash:', dh)
+          print('  records_count:', rc)
+          print('  change_display:', m.get('change_display', ''))
+          print('  publish_allowed:', m.get('publish_allowed'))
+          print('  warnings:', m.get('warnings', []))
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as f:
+              f.write('META_OK=true\n')
+          PYEOF
+
+      - name: Commit and push changes
+        if: env.FILES_OK == 'true' && env.META_OK == 'true'
         run: |
           git config --local user.email "github-actions@github.com"
           git config --local user.name "GitHub Actions"
