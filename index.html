@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ОКСМ — Общероссийский классификатор стран мира</title>
-<meta name="description" content="Поиск по ОКСМ: числовой код страны, альфа-2, альфа-3, краткое и полное наименование. Плоский справочник стран мира без дерева. Источник — машиночитаемый снимок классификатора.">
+<meta name="description" content="Поиск по ОКСМ: числовой код страны (643, 840, 004), альфа-2 (RU, US, DE), альфа-3 (RUS, USA, DEU), краткое и полное наименование. Россия, США, Германия, Казахстан, Беларусь, Китай и другие страны и территории. Плоский справочник без дерева.">
 <meta name="theme-color" content="#e8f0f7">
 <link rel="icon" type="image/svg+xml" href="https://prog815.github.io/common-menu/favicon.svg?v=1.0.0">
 <style>
@@ -31,6 +31,7 @@
   }
   a{color:var(--accent-text)}
   .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+  [hidden]{display:none!important}
 
   /* header */
   .hero{padding:18px 0 6px}
@@ -47,9 +48,9 @@
   .hints{margin:10px 0 0;color:var(--muted);font-size:13px}
   .hints .mono{font-family:var(--mono);letter-spacing:.3px}
 
-  /* sticky search panel */
+  /* search panel */
   .panel{
-    position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);
+    background:rgba(255,255,255,.92);
     backdrop-filter:saturate(1.1) blur(6px);
     border-bottom:1px solid var(--line);padding:12px 0;margin-top:0;
   }
@@ -74,7 +75,16 @@
   .statusline{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;
     color:var(--muted);font-size:13px;padding:2px 2px 0}
   .statusline .found b{color:var(--text)}
-  .statusline .date{white-space:nowrap;text-align:right;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .reset-link{
+    font-size:13px;
+    color:var(--muted);
+    text-decoration:underline dashed;
+    text-underline-offset:3px;
+    white-space:nowrap;
+    transition:color .15s;
+    cursor:pointer;
+  }
+  .reset-link:hover{color:var(--accent-text)}
 
   /* results */
   main{padding:14px 0 30px}
@@ -102,16 +112,22 @@
   .alpha2:hover{border-color:var(--a2)}
   .alpha3{background:var(--a3-bg);color:var(--a3-fg)}
   .alpha3:hover{border-color:var(--a3)}
-  .copy-full{
-    margin-left:auto;border:1px dashed var(--line-strong);background:#fbfcfe;color:var(--muted);
+
+  .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;align-items:center}
+  .btn-small{
+    display:inline-flex;align-items:center;gap:4px;
+    border:1px dashed var(--line-strong);background:#fbfcfe;color:var(--muted);
     border-radius:8px;padding:4px 9px;cursor:pointer;font:inherit;font-size:13px;white-space:nowrap;
+    transition: background .15s, border-color .15s;
   }
-  .copy-full:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-weak)}
+  .btn-small:hover{border-color:var(--accent);color:var(--accent-text);background:var(--accent-weak)}
+
   .badge{
     font:inherit;font-size:12px;border-radius:999px;padding:4px 10px;cursor:default;
     border:1px solid transparent;white-space:nowrap;
   }
   .badge-review{background:var(--review-bg);color:var(--review-fg);border-color:var(--review)}
+
   .name{margin-top:9px;font-size:15.5px;font-weight:650;word-break:break-word}
   .meta-row{margin-top:7px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
   .meta-row .lbl{color:var(--muted);white-space:nowrap}
@@ -132,13 +148,15 @@
   footer{border-top:1px solid var(--line);background:var(--panel)}
   footer .wrap{padding:18px 16px 30px;color:var(--muted);font-size:14px}
   footer h4{margin:0 0 8px;color:var(--text);font-size:15px}
-  footer .lead{margin:0 0 12px;color:var(--text)}
+  footer .lead{margin:0 0 4px;color:var(--text)}
   footer .lead b{font-weight:600}
-  footer .links{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin:0 0 10px}
-  footer .links .cap{color:var(--muted)}
-  footer .links a{white-space:nowrap}
-  footer .note{margin:6px 0 0;font-size:13px;color:#596172}
-  footer .disc{margin:10px 0 0;font-size:13px;color:#6b7385}
+  .date-line{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .sources{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .sources-row{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+  .sources-row .cap{color:var(--muted)}
+  .sources-row a{white-space:nowrap;text-decoration:none;border-bottom:1px solid transparent}
+  .sources-row a:hover{border-bottom-color:var(--accent)}
+  footer .disc{margin:0;font-size:13px;color:#6b7385}
 
   /* floating buttons + toast */
   .fab{position:fixed;right:16px;display:flex;flex-direction:column;gap:8px;z-index:40}
@@ -156,37 +174,30 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  @media (max-width:720px){
+  @media (max-width:640px){
     .hero h1{font-size:25px}
     .row1{flex-direction:column;align-items:stretch}
     .row1>*{width:100%}
     .searchbox{flex:auto}
-    .statusline{flex-direction:column;gap:2px}
-    .statusline .date{text-align:left}
-    .copy-full{margin-left:0}
+    .statusline{flex-direction:column;gap:2px;align-items:flex-start}
+    .reset-link{margin-top:4px}
+    .card-top{flex-direction:column;align-items:stretch}
+    .card-actions{margin-left:0;justify-content:flex-start}
+    .btn-small{justify-content:center}
   }
 </style>
 </head>
 <body>
-<!--
-  Версия каталога после добавления ОКСМ — ?v=2.7.0.
-  Порядок публикации:
-    1) сначала обновить prog815/common-menu/menu.js (добавить пункт ОКСМ в projectsCatalog
-       после ОКВ: { label:'ОКСМ', title:'Справочник ОКСМ', url:'https://prog815.github.io/oksm/',
-       match:'/oksm/', goal:'nav_oksm' }) и закоммитить;
-    2) убедиться, что https://prog815.github.io/common-menu/menu.js?v=2.7.0 отдаёт 200;
-    3) затем публиковать этот index.html с ?v=2.7.0 и batch-поднять ?v= во всех справочниках.
-  Пока 2.7.0 не залит в каталог — страница всё равно работает, меню просто не покажет пункт ОКСМ.
-  match:'/oksm/' не является подстрокой других match — подсветка активного пункта корректна.
--->
-<script src="https://prog815.github.io/common-menu/menu.js?v=2.7.0"></script>
+<script src="https://prog815.github.io/common-menu/menu.js?v=3.0.0"></script>
 <common-projects-menu></common-projects-menu>
+
+<script src="https://prog815.github.io/common-menu/share.js?v=1.0.0"></script>
 
 <div class="wrap hero">
   <h1>ОКСМ</h1>
   <p>Общероссийский классификатор стран мира.
-     Поиск по <b>числовому коду</b>, <b>альфа-2</b>, <b>альфа-3</b>,
-     <b>краткому</b> и <b>полному наименованию</b>.
+     Поиск по <b>числовому коду</b> (643, 840, 004), <b>альфа-2</b> (RU, US, DE),
+     <b>альфа-3</b> (RUS, USA, DEU), <b>краткому</b> и <b>полному наименованию</b>.
      Справочник плоский — список записей без дерева.</p>
 
   <div class="notice">
@@ -201,7 +212,7 @@
     Форматы запроса: <span class="mono">три цифры</span> ·
     <span class="mono">два буквенных символа</span> ·
     <span class="mono">три буквенных символа</span> ·
-    слово из краткого или полного названия.
+    слово из краткого или полного названия · сокращение (РФ, ФРГ, США).
   </div>
 </div>
 
@@ -209,15 +220,15 @@
   <div class="wrap">
     <div class="row1">
       <div class="searchbox" id="searchbox">
-        <input id="q" type="search" autocomplete="off" spellcheck="false"
-               placeholder="Код, альфа-2, альфа-3 или название"
+        <input id="q" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Код (643, 004), альфа-2/3 (RU, RUS) или название: Россия, Германия…"
                aria-label="Поиск по ОКСМ">
-        <button class="clear" id="clear" type="button" title="Очистить запрос" aria-label="Очистить запрос">×</button>
+        <button class="clear" id="clear" type="button" title="Очистить запрос" aria-label="Очистить запрос">✕</button>
       </div>
     </div>
     <div class="statusline">
       <div class="found" id="found">Загрузка…</div>
-      <div class="date" id="dateLine"></div>
+      <a href="#" id="resetFilters" class="reset-link" title="Очистить запрос">Очистить</a>
     </div>
   </div>
 </div>
@@ -236,18 +247,11 @@
   <div class="wrap">
     <h4>О справочнике</h4>
     <p class="lead" id="footLead"></p>
-    <div class="links">
-      <span class="cap">Источник данных (машиночитаемый снимок):</span>
-      <a href="https://classifikators.ru/oksm" rel="noopener" target="_blank">classifikators.ru — ОКСМ</a>
+    <div class="date-line" id="dateLineFoot"></div>
+    <div class="sources">
+      <div class="sources-row" id="sourcesPrimary"></div>
+      <div class="sources-row" id="sourcesSecondary"></div>
     </div>
-    <div class="links">
-      <span class="cap">Текстовые редакции для сверки:</span>
-      <a href="https://www.consultant.ru/document/cons_doc_LAW_34516/" rel="noopener" target="_blank">КонсультантПлюс</a>
-      <a href="https://internet.garant.ru/#/document/12127475" rel="noopener" target="_blank">Гарант</a>
-      <a href="https://docs.cntd.ru/document/842501280" rel="noopener" target="_blank">Кодекс</a>
-      <a href="https://github.com/prog815/oksm" rel="noopener" target="_blank">О справочнике</a>
-    </div>
-    <p class="note" id="footCodeNote"></p>
     <p class="disc" id="footDisc"></p>
   </div>
 </footer>
@@ -272,9 +276,19 @@
   var SCROLL_THRESHOLD = 300;
   var EMPTY_PQ = {digits:"", tokens:[], rawTerms:[], latin:[], full:""};
 
-  // Формат веб-записи ОКСМ (контракт тетрадки):
+  // формат веб-записи ОКСМ:
   // [code, iso_alpha2, iso_alpha3, name_short, name_full, source_order, needs_review]
   var F_CODE=0, F_ALPHA2=1, F_ALPHA3=2, F_SHORT=3, F_FULL=4, F_ORDER=5, F_REVIEW=6;
+
+  // Только правильные источники для ОКСМ (Росстандарт/ISO в футер не выводим)
+  var DEFAULT_PRIMARY_SOURCES = [
+    { name: 'classifikators.ru — ОКСМ', url: 'https://classifikators.ru/oksm', role: 'primary' }
+  ];
+  var DEFAULT_SECONDARY_SOURCES = [
+    { name: 'КонсультантПлюс', url: 'https://www.consultant.ru/document/cons_doc_LAW_34516/', role: 'secondary' },
+    { name: 'Гарант', url: 'https://internet.garant.ru/#/document/12127475', role: 'secondary' },
+    { name: 'Кодекс', url: 'https://docs.cntd.ru/document/842501280', role: 'secondary' }
+  ];
 
   // ---------- состояние ----------
   var RECORDS = [];
@@ -283,22 +297,23 @@
   var filtered = [];
   var shown = PAGE_SIZE;
   var META = null;
-  var pendingFocusCode = "";
+  var activeDeepLinkCode = null;
 
   // ---------- dom ----------
   var $ = function(id){return document.getElementById(id);};
   var elState=$("state"), elList=$("list"), elMoreWrap=$("moreWrap"), elMore=$("more");
   var elQ=$("q"), elClear=$("clear"), elBox=$("searchbox"),
-      elFound=$("found"), elDate=$("dateLine"),
+      elFound=$("found"), elDateFoot=$("dateLineFoot"),
       elFootLead=$("footLead"),
-      elFootCodeNote=$("footCodeNote"),
       elFootDisc=$("footDisc"), elToast=$("toast"),
-      elTop=$("toTop"), elBottom=$("toBottom");
+      elTop=$("toTop"), elBottom=$("toBottom"),
+      elSourcesPrimary=$("sourcesPrimary"), elSourcesSecondary=$("sourcesSecondary"),
+      elReset=$("resetFilters");
 
   // ---------- утилиты ----------
   function norm(s){
     s = String(s==null?"":s).toLowerCase().replace(/ё/g,"е");
-    s = s.replace(/[^a-zа-я0-9]+/g," ");
+    s = s.replace(/[^\p{L}\p{N}]+/gu," ");
     s = s.replace(/\s+/g," ").trim();
     return s;
   }
@@ -323,7 +338,7 @@
     return m[3]+"."+m[2]+"."+m[1];
   }
 
-  // Автоматические аббревиатуры из названия. Это не ручной словарь стран,
+  // Автоматические аббревиатуры из названия. Это НЕ ручной словарь стран,
   // а производный поисковый слой из полей источника.
   function makeAcronyms(text){
     var words = String(text||"").match(/[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё'’-]*/g) || [];
@@ -375,7 +390,7 @@
   async function loadAll(){
     elState.hidden=false; elState.className=""; elState.textContent="Загрузка данных справочника…";
     elList.hidden=true; elList.innerHTML=""; elMoreWrap.hidden=true; elMore.textContent="";
-    elFound.textContent="Загрузка…"; elDate.textContent="";
+    elFound.textContent="Загрузка…"; elDateFoot.textContent="";
 
     var data, meta=null;
     try{
@@ -464,7 +479,6 @@
       if(review==="1") countReview++;
     }
 
-    // Порядок по умолчанию — как в источнике, затем по коду.
     RECORDS.sort(function(a,b){
       if(a.orderNum !== b.orderNum) return a.orderNum - b.orderNum;
       return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
@@ -503,13 +517,11 @@
     var score=0;
     var hasQuery = !!(pq.digits || pq.latin.length || pq.tokens.length);
 
-    // числовой код
     if(pq.digits){
       if(r.code === pq.digits) score += 100;
       else if(pq.digits.length >= 2 && r.code.indexOf(pq.digits) === 0) score += 75;
     }
 
-    // альфа-коды
     if(pq.latin.length){
       for(var li=0; li<pq.latin.length; li++){
         var l = pq.latin[li];
@@ -523,14 +535,12 @@
       }
     }
 
-    // AND по токенам
     if(pq.tokens.length){
       for(var ti=0; ti<pq.tokens.length; ti++){
         if(!tokenMatches(pq.tokens[ti], r)) return null;
       }
     }
 
-    // точные / частичные совпадения по тексту
     if(pq.full){
       if(r.nShort === pq.full) score += 60;
       else if(r.nShort.indexOf(pq.full) === 0) score += 50;
@@ -561,22 +571,27 @@
     var pq = prepareQuery(elQ.value);
     var hasQuery = !!(pq.digits || pq.latin.length || pq.tokens.length);
 
-    var base = RECORDS.slice();
-
-    if(hasQuery){
-      var scored=[];
-      for(var a=0;a<base.length;a++){
-        var s = scoreRecord(base[a], pq);
-        if(s!==null) scored.push({r:base[a], s:s});
-      }
-      scored.sort(function(x,y){
-        if(y.s !== x.s) return y.s - x.s;
-        if(x.r.orderNum !== y.r.orderNum) return x.r.orderNum - y.r.orderNum;
-        return x.r.code < y.r.code ? -1 : x.r.code > y.r.code ? 1 : 0;
-      });
-      filtered = scored.map(function(o){return o.r;});
+    if(activeDeepLinkCode){
+      var match = BY_CODE[activeDeepLinkCode];
+      filtered = match ? [match] : [];
     }else{
-      filtered = base;
+      var base = RECORDS.slice();
+
+      if(hasQuery){
+        var scored=[];
+        for(var a=0;a<base.length;a++){
+          var s = scoreRecord(base[a], pq);
+          if(s!==null) scored.push({r:base[a], s:s});
+        }
+        scored.sort(function(x,y){
+          if(y.s !== x.s) return y.s - x.s;
+          if(x.r.orderNum !== y.r.orderNum) return x.r.orderNum - y.r.orderNum;
+          return x.r.code < y.r.code ? -1 : x.r.code > y.r.code ? 1 : 0;
+        });
+        filtered = scored.map(function(o){return o.r;});
+      }else{
+        filtered = base;
+      }
     }
 
     filtered._pq = pq;
@@ -620,6 +635,33 @@
       elMore.textContent="";
       elMoreWrap.hidden=true;
     }
+
+    bindShareButtons();
+  }
+
+  // ---------- share ----------
+  function bindShareButtons() {
+    var slots = elList.querySelectorAll('.share-slot');
+    slots.forEach(function(slot) {
+      var code = slot.dataset.code || '';
+      var name = slot.dataset.name || '';
+      var rowText = slot.dataset.row || '';
+
+      var wrap = document.createElement('klassik-share');
+      wrap.setAttribute('catalog', 'oksm');
+      wrap.setAttribute('title', 'ОКСМ: ' + code + ' — ' + name);
+      wrap.setAttribute('text', rowText);
+      wrap.setAttribute('url', location.origin + location.pathname + '?code=' + encodeURIComponent(code));
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-small';
+      btn.title = 'Поделиться карточкой';
+      btn.innerHTML = '📤 Поделиться';
+      wrap.appendChild(btn);
+
+      slot.parentNode.replaceChild(wrap, slot);
+    });
   }
 
   // ---------- подсветка ----------
@@ -683,7 +725,7 @@
       top.appendChild(a3);
     }
 
-    // требует сверки
+    // требует сверки (только если needs_review=1; в текущем снимке не появляется)
     if(review){
       var rb = document.createElement("span");
       rb.className="badge badge-review";
@@ -692,15 +734,31 @@
       top.appendChild(rb);
     }
 
-    // копировать строку
-    var copyFull = document.createElement("button");
-    copyFull.type="button"; copyFull.className="copy-full";
-    var fullVal = [r.code, r.alpha2, r.alpha3, r.short, r.full].filter(Boolean).join("; ");
-    copyFull.textContent = "📋 строка";
-    copyFull.title = "Скопировать: "+fullVal;
-    copyFull.dataset.act="copy-full"; copyFull.dataset.val=fullVal;
-    top.appendChild(copyFull);
+    // actions
+    var actions = document.createElement("div"); actions.className = "card-actions";
 
+    var rowBtn = document.createElement("button");
+    rowBtn.type="button"; rowBtn.className="btn-small";
+    var parts = [r.code];
+    if(r.alpha2) parts.push(r.alpha2);
+    if(r.alpha3) parts.push(r.alpha3);
+    if(r.short) parts.push(r.short);
+    if(r.full) parts.push(r.full);
+    var fullVal = parts.join("; ");
+
+    rowBtn.innerHTML = "📋 строка";
+    rowBtn.title = "Скопировать: "+fullVal;
+    rowBtn.dataset.act="copy-full"; rowBtn.dataset.val=fullVal;
+    actions.appendChild(rowBtn);
+
+    var shareSlot = document.createElement("span");
+    shareSlot.className = "share-slot";
+    shareSlot.dataset.code = r.code;
+    shareSlot.dataset.name = r.short;
+    shareSlot.dataset.row = fullVal;
+    actions.appendChild(shareSlot);
+
+    top.appendChild(actions);
     card.appendChild(top);
 
     // краткое название
@@ -708,7 +766,7 @@
     name.innerHTML = hlText(r.short, terms);
     card.appendChild(name);
 
-    // полное название
+    // полное название (если есть и не совпадает с кратким)
     if(r.full && r.full !== r.short){
       var fr = document.createElement("div"); fr.className="meta-row";
       var fl = document.createElement("span"); fl.className="lbl";
@@ -729,51 +787,7 @@
     return li;
   }
 
-  // ---------- редакция / футер ----------
-  function renderDateLine(){
-    var parts=[];
-    if(META && META.change) parts.push(META.change);
-    if(META && META.effective_date) parts.push("введено "+fmtRuDate(META.effective_date));
-    if(META && META.source_date_display) parts.push("снимок "+META.source_date_display);
-    elDate.textContent = parts.join(" · ");
-
-    var titleParts=[];
-    if(META && META.standard_line) titleParts.push(META.standard_line);
-    if(META && META.provenance) titleParts.push(META.provenance);
-    elDate.title = titleParts.join(" | ");
-  }
-
-  function renderFooter(){
-    var total = RECORDS.length;
-    var s = "В справочнике "+fmtNum(total)+" "+plural(total,["запись","записи","записей"])+
-            ": "+fmtNum(countFull)+" "+plural(countFull,["с полным названием","с полным названием","с полным названием"])+
-            " и "+fmtNum(countNoFull)+" "+plural(countNoFull,["без полного названия","без полного названия","без полного названия"])+
-            "; "+fmtNum(countAlpha2)+" "+plural(countAlpha2,["с альфа-2","с альфа-2","с альфа-2"])+
-            ", "+fmtNum(countAlpha3)+" "+plural(countAlpha3,["с альфа-3","с альфа-3","с альфа-3"]);
-    if(countReview){
-      s += "; "+fmtNum(countReview)+" "+plural(countReview,["помечена","помечены","помечено"])+" на сверку";
-    }
-    s += ".";
-    elFootLead.innerHTML = escHtml(s).replace(/(\d[\d\u00a0.]*)/g,"<b>$1</b>");
-
-    elFootCodeNote.textContent = (META && META.code_system_note)
-      ? META.code_system_note
-      : "Буквенные коды альфа-2 / альфа-3 приведены по данным источника и соответствуют системе ОКСМ / МК (ИСО 3166) 004-97; по отдельным объектам они могут не совпадать с ISO 3166-1.";
-
-    var disc = (META && META.disclaimer)
-      ? META.disclaimer
-      : "Материалы носят справочный характер и не являются точными копиями официальных документов. Перед применением в официальных документах сверяйте по первоисточнику.";
-    disc += " ОКСМ не является адресным реестром: для российских территорий используйте ОКАТО и ОКТМО.";
-    elFootDisc.textContent = disc;
-  }
-
   // ---------- навигация ----------
-  function openCode(code){
-    var rec = BY_CODE[code];
-    if(!rec) return;
-    elQ.value=code; syncClear();
-    applyFilters(); syncUrl(); focusCode(code);
-  }
   function focusCode(code){
     setTimeout(function(){
       var el = document.querySelector('article.card[data-code="'+code+'"]');
@@ -788,27 +802,41 @@
   // ---------- URL ----------
   function parseUrlAndApply(){
     var sp = new URLSearchParams(location.search);
-    var code = sp.get("code") || "";
-    var q = sp.get("q") || "";
+    var code = sp.get("code");
 
-    pendingFocusCode = "";
     if(code){
+      activeDeepLinkCode = code;
       elQ.value = code;
-      pendingFocusCode = code;
-    }else{
-      elQ.value = q;
+      syncClear();
+      applyFilters();
+      focusCode(code);
+      return;
     }
-    syncClear();
 
+    activeDeepLinkCode = null;
+    var q = sp.get("q")||"";
+    elQ.value = q; syncClear();
     applyFilters();
-    if(pendingFocusCode) focusCode(pendingFocusCode);
   }
+
   function syncUrl(){
+    if(activeDeepLinkCode) return;
+
     var sp = new URLSearchParams();
     var q = elQ.value.trim(); if(q) sp.set("q", q);
     var qs = sp.toString();
     var url = location.pathname + (qs?("?"+qs):"");
     try{ history.replaceState(null,"",url); }catch(e){}
+  }
+
+  function syncCodeToUrl(code) {
+    history.replaceState(null, '', location.pathname + '?code=' + encodeURIComponent(code));
+  }
+
+  function clearCodeFromUrl() {
+    if (location.search.includes('code=')) {
+      history.replaceState(null, '', location.pathname + location.hash);
+    }
   }
 
   // ---------- копирование + тост ----------
@@ -817,7 +845,7 @@
     elToast.textContent = msg;
     elToast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ elToast.classList.remove("show"); }, 1600);
+    toastTimer = setTimeout(function(){ elToast.classList.remove("show"); }, 1800);
   }
   function copyText(text, label){
     var done=function(){ toast(label); };
@@ -837,7 +865,11 @@
     var btn = e.target.closest("[data-act]");
     if(!btn) return;
     var act = btn.dataset.act, val = btn.dataset.val;
-    if(act==="copy-code") copyText(val, "Числовой код "+val+" скопирован");
+    if(act==="copy-code") {
+      copyText(val, "Числовой код "+val+" скопирован");
+      activeDeepLinkCode = val;
+      syncCodeToUrl(val);
+    }
     else if(act==="copy-alpha2") copyText(val, "Альфа-2 "+val+" скопирован");
     else if(act==="copy-alpha3") copyText(val, "Альфа-3 "+val+" скопирован");
     else if(act==="copy-full") copyText(val, "Скопировано: "+val);
@@ -849,14 +881,34 @@
 
   var deb=null;
   function onInput(){
+    activeDeepLinkCode = null;
+    clearCodeFromUrl();
     syncClear();
     clearTimeout(deb);
     deb=setTimeout(function(){ applyFilters(); syncUrl(); }, DEBOUNCE_MS);
   }
 
   elQ.addEventListener("input", onInput);
-  elQ.addEventListener("search", function(){ syncClear(); applyFilters(); syncUrl(); });
-  elClear.addEventListener("click", function(){ elQ.value=""; syncClear(); applyFilters(); syncUrl(); elQ.focus(); });
+  elQ.addEventListener("search", function(){
+    activeDeepLinkCode = null;
+    clearCodeFromUrl();
+    syncClear(); applyFilters(); syncUrl();
+  });
+  elClear.addEventListener("click", function(){
+    activeDeepLinkCode = null;
+    clearCodeFromUrl();
+    elQ.value=""; syncClear(); applyFilters(); syncUrl(); elQ.focus();
+  });
+  elReset.addEventListener("click", function(e){
+    e.preventDefault();
+    activeDeepLinkCode = null;
+    clearCodeFromUrl();
+    elQ.value="";
+    syncClear();
+    applyFilters();
+    syncUrl();
+    elQ.focus();
+  });
   elMore.addEventListener("click", function(){ shown += PAGE_SIZE; renderList(); });
   elList.addEventListener("click", onListClick);
 
@@ -873,6 +925,97 @@
   window.addEventListener("resize", onScroll);
   elTop.addEventListener("click", function(){ window.scrollTo({top:0,behavior:"smooth"}); });
   elBottom.addEventListener("click", function(){ window.scrollTo({top:document.documentElement.scrollHeight,behavior:"smooth"}); });
+
+  // ---------- дата / футер ----------
+  function renderDateLine(){
+    var parts=[];
+    if(META){
+      if(META.change_display) parts.push(META.change_display);
+      else if(META.source_date_display) parts.push("Снимок от "+META.source_date_display);
+      else parts.push("Дата актуальности не определена");
+    }else{
+      parts.push("Дата актуальности не определена");
+    }
+    elDateFoot.textContent = parts.join(" · ");
+
+    var titleParts=[];
+    if(META && META.standard_line) titleParts.push(META.standard_line);
+    if(META && META.provenance) titleParts.push(META.provenance);
+    elDateFoot.title = titleParts.join(" | ");
+  }
+
+  function mergeSources(metaSources, defaults) {
+    var byUrl = new Map(defaults.map(function(s){ return [s.url, s]; }));
+    if (Array.isArray(metaSources)) {
+      for (var s of metaSources) {
+        if (s && s.url && !byUrl.has(s.url)) {
+          byUrl.set(s.url, s);
+        }
+      }
+    }
+    return Array.from(byUrl.values());
+  }
+
+  function linkFor(s) {
+    var a = document.createElement('a');
+    a.href = s.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = s.name;
+    a.title = s.name;
+    return a;
+  }
+
+  function renderFooter(){
+    var total = RECORDS.length;
+    var s = "В справочнике "+fmtNum(total)+" "+plural(total,["запись","записи","записей"])+
+            ": "+fmtNum(countFull)+" "+plural(countFull,["с полным названием","с полным названием","с полным названием"])+
+            " и "+fmtNum(countNoFull)+" "+plural(countNoFull,["без полного названия","без полного названия","без полного названия"]);
+    if(countReview){
+      s += "; "+fmtNum(countReview)+" "+plural(countReview,["помечена","помечены","помечено"])+" на сверку";
+    }
+    s += ".";
+    elFootLead.innerHTML = escHtml(s).replace(/(\d[\d\u00a0.]*)/g,"<b>$1</b>");
+
+    // Фильтруем источники: Росстандарт и ISO в футер не выводим (v1 §8).
+    var primaryList = META && META.primary_sources ? META.primary_sources.filter(function(x){return x.role==='primary'}) : [];
+    var secondaryList = META && META.primary_sources ? META.primary_sources.filter(function(x){return x.role==='secondary'}) : [];
+
+    primaryList = primaryList.filter(function(x){ return x.url && x.url.indexOf('gost.ru') < 0 && x.url.indexOf('iso.org') < 0; });
+
+    // classifikators.ru — это машиночитаемый снимок (идёт в «Источник данных»),
+    // в «Первоисточники и текстовые редакции для сверки» его не дублируем.
+    secondaryList = secondaryList.filter(function(x){
+      return x.url &&
+             x.url.indexOf('gost.ru') < 0 &&
+             x.url.indexOf('iso.org') < 0 &&
+             x.url.indexOf('classifikators.ru') < 0;
+    });
+
+    var mergedPrimary = mergeSources(primaryList, DEFAULT_PRIMARY_SOURCES);
+    var mergedSecondary = mergeSources(secondaryList, DEFAULT_SECONDARY_SOURCES);
+
+    elSourcesPrimary.innerHTML = '<span class="cap">Источник данных (машиночитаемый снимок):</span>';
+    mergedPrimary.forEach(function(src){ elSourcesPrimary.appendChild(linkFor(src)); });
+
+    elSourcesSecondary.innerHTML = '<span class="cap">Первоисточники и текстовые редакции для сверки:</span>';
+    mergedSecondary.forEach(function(src){ elSourcesSecondary.appendChild(linkFor(src)); });
+
+    var aboutLink = document.createElement('a');
+    aboutLink.href = 'https://github.com/prog815/oksm';
+    aboutLink.target = '_blank';
+    aboutLink.rel = 'noopener noreferrer';
+    aboutLink.textContent = 'О справочнике';
+    aboutLink.title = 'О справочнике (репозиторий проекта)';
+    elSourcesSecondary.appendChild(aboutLink);
+
+    var d = (META && META.disclaimer) ? META.disclaimer
+      : "Материалы носят справочный характер и не являются точными копиями официальных документов. "+
+        "Перед применением в официальных документах сверяйте по первоисточнику (Росстандарт).";
+    d += " ОКСМ не является адресным реестром: для российских территорий используйте ОКАТО и ОКТМО. "+
+         "Буквенные коды альфа-2 / альфа-3 приведены по системе ОКСМ / МК (ИСО 3166) 004-97 и по отдельным объектам могут не совпадать с ISO 3166-1.";
+    elFootDisc.textContent = d;
+  }
 
   syncClear();
   loadAll();
