@@ -113,14 +113,6 @@
   h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
   .sub{color:var(--muted);margin:0 0 12px;font-size:14px}
 
-  .notice{
-    margin:12px 0 2px;padding:10px 14px;border:1px solid var(--line);
-    border-left:5px solid var(--brand);border-radius:10px;background:var(--panel);
-    color:var(--ink);font-size:13.5px;box-shadow:var(--shadow);
-  }
-  .notice b{font-weight:600}
-  .notice a{white-space:nowrap}
-
   /* Панель поиска */
   .search-container{padding:12px 0 8px;}
   .searchbar{display:flex; gap:8px; align-items:stretch; flex-wrap:wrap;}
@@ -228,6 +220,15 @@
     padding-top:12px; border-top:1px dashed var(--line);
     margin-top:12px;
   }
+  .action-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:500; color:var(--muted);
+    background:transparent; border:1px solid transparent;
+    border-radius:6px; padding:4px 8px; cursor:pointer;
+    transition:all .2s; font-family:inherit;
+  }
+  .action-btn:hover{background:var(--accent); color:var(--brand-d); border-color:var(--accent)}
+
   .share-slot{display:inline-flex}
   .share-slot klassik-share { display: inline-flex; align-items: center; }
 
@@ -281,8 +282,6 @@
     .searchbar input[type=text] { width: 100%; flex: 1 1 100%; }
     .row1 { flex-direction: column; }
     .badges { justify-content: flex-start; margin-top: 8px; }
-    .card-top{flex-direction:column;align-items:stretch}
-    .card-actions{margin-left:0;justify-content:flex-start}
   }
 </style>
 </head>
@@ -298,14 +297,8 @@
 <div class="wrap" id="main-content">
   <header class="hero">
     <h1>🌍 ОКСМ — Общероссийский классификатор стран мира</h1>
-    <p class="sub">Мгновенный поиск по числовому коду (643, 840, 004), альфа-2 (RU, US, DE) и альфа-3 (RUS, USA, DEU). Плоский справочник ОК (МК (ИСО 3166) 004-97) 025-2001.</p>
+    <p class="sub">Мгновенный поиск по коду и названию. Плоский справочник ОК (МК (ИСО 3166) 004-97) 025-2001.</p>
   </header>
-
-  <div class="notice">
-    <b>ОКСМ — это код страны мира.</b>
-    Для адресов внутри России используйте <a href="https://prog815.github.io/okato/" target="_blank">ОКАТО</a> и <a href="https://prog815.github.io/oktmo/" target="_blank">ОКТМО</a>.
-    Буквенные коды альфа-2 / альфа-3 приведены по данным ОКСМ и могут не совпадать с ISO 3166-1.
-  </div>
 
   <noscript>
     <div class="noscript-msg">
@@ -369,7 +362,6 @@
       Справочник носит справочный характер и не является точной копией официального документа.
       Машиночитаемый снимок подготовлен на основе открытых данных сайта classifikators.ru.
       Перед применением в документах, имеющих юридическую силу, сверяйтесь с действующей редакцией Общероссийского классификатора стран мира.
-      ОКСМ не является адресным реестром: для российских территорий используйте ОКАТО и ОКТМО.
     </p>
   </footer>
 </div>
@@ -394,6 +386,7 @@
     { name: "classifikators.ru — ОКСМ", url: "https://classifikators.ru/oksm", role: "primary" }
   ];
   var DEFAULT_SECONDARY_SOURCES = [
+    { name: "Росстандарт (protect.gost.ru)", url: "https://protect.gost.ru/classificators/details/13881bcb-243e-4d99-a051-f92db67021de", role: "secondary" },
     { name: "КонсультантПлюс", url: "https://www.consultant.ru/document/cons_doc_LAW_34516/", role: "secondary" },
     { name: "Гарант", url: "https://internet.garant.ru/#/document/12127475", role: "secondary" },
     { name: "Кодекс", url: "https://docs.cntd.ru/document/842501280", role: "secondary" }
@@ -932,12 +925,9 @@
     // 3. Разделяем на primary и secondary
     var primaryList = allSources.filter(function(s){ return s.url && s.role === 'primary'; });
     
-    // 4. Исключаем classifikators.ru из secondary, а также gost.ru и iso.org по стандарту ОКСМ
+    // 4. Исключаем classifikators.ru из secondary (Росстандарт и ISO оставляем)
     var secondaryList = allSources.filter(function(s){ 
-      return s.url && s.role !== 'primary' && 
-             s.url.indexOf('classifikators.ru') === -1 &&
-             s.url.indexOf('gost.ru') === -1 &&
-             s.url.indexOf('iso.org') === -1; 
+      return s.url && s.role !== 'primary' && s.url.indexOf('classifikators.ru') === -1; 
     });
 
     // Дедупликация по URL
