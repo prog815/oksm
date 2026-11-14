@@ -925,9 +925,11 @@
     // 3. Разделяем на primary и secondary
     var primaryList = allSources.filter(function(s){ return s.url && s.role === 'primary'; });
     
-    // 4. Исключаем classifikators.ru из secondary (Росстандарт и ISO оставляем)
+    // 4. Исключаем classifikators.ru из secondary, а также iso.org (ISO 3166-1 в футер не выводим)
     var secondaryList = allSources.filter(function(s){ 
-      return s.url && s.role !== 'primary' && s.url.indexOf('classifikators.ru') === -1; 
+      return s.url && s.role !== 'primary' && 
+             s.url.indexOf('classifikators.ru') === -1 &&
+             s.url.indexOf('iso.org') === -1; 
     });
 
     // Дедупликация по URL
